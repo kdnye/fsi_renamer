@@ -9,6 +9,7 @@ const extractFrames = require('./extractFrames')
 const readFileContent = require('./readFileContent')
 const deleteDirectory = require('./deleteDirectory')
 const isProcessableFile = require('./isProcessableFile')
+const convertImage = require('./convertImage')
 
 module.exports = async options => {
   try {
@@ -30,7 +31,8 @@ module.exports = async options => {
     let images = []
     let framesOutputDir
     if (isImage({ ext })) {
-      images.push(filePath)
+      const convertedImagePath = await convertImage({ imagePath: filePath })
+      images.push(convertedImagePath)
     } else if (isVideo({ ext })) {
       framesOutputDir = `/tmp/ai-renamer/${uuidv4()}`
       const _extractedFrames = await extractFrames({
