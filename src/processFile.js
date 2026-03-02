@@ -11,8 +11,6 @@ const readFileContent = require('./readFileContent')
 const deleteDirectory = require('./deleteDirectory')
 const splitPdfPages = require('./splitPdfPages')
 const readPdfPageContent = require('./readPdfPageContent')
-const decodeBarcodeFromPage = require('./decodeBarcodeFromPage')
-const mapBarcodeToFilename = require('./mapBarcodeToFilename')
 const isProcessableFile = require('./isProcessableFile')
 
 const IGNORE_CLASSIFICATION = 'ignore'
@@ -112,16 +110,7 @@ module.exports = async options => {
           continue
         }
 
-        const decodedIdentifiers = await decodeBarcodeFromPage({ pageText: content })
-        const newName = mapBarcodeToFilename({
-          classificationToken,
-          barcodePayload: decodedIdentifiers && decodedIdentifiers.bestGuess,
-          identifiers: decodedIdentifiers || {}
-        }) || classificationToken
-
-        if (newName !== classificationToken) {
-          console.log(`🟢 Identifiers mapped: ${pageRelativeFilePath} -> ${newName}`)
-        }
+        const newName = classificationToken
 
         const newFileName = await savePdfBuffer({
           dir: path.dirname(filePath),
