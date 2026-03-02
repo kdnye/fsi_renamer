@@ -77,20 +77,20 @@ module.exports = async options => {
           console.log(`🟡 PDF parse warning: ${parseError} (${pageRelativeFilePath})`)
         }
 
-        if (!content) {
-          if (logisticsModeEnabled && !hasExtractableText) {
-            const newFileName = await savePdfBuffer({
-              dir: path.dirname(filePath),
-              ext,
-              newName: SCANNED_REVIEW_NAME,
-              pageBuffer: page.pageBuffer
-            })
-            const relativeNewFilePath = path.join(path.dirname(relativeFilePath), newFileName)
-            console.log(`🟡 No extractable text (possible scanned PDF): ${pageRelativeFilePath} -> ${relativeNewFilePath}`)
-            savedPagesCount++
-            continue
-          }
+        if (logisticsModeEnabled && !hasExtractableText) {
+          const newFileName = await savePdfBuffer({
+            dir: path.dirname(filePath),
+            ext,
+            newName: SCANNED_REVIEW_NAME,
+            pageBuffer: page.pageBuffer
+          })
+          const relativeNewFilePath = path.join(path.dirname(relativeFilePath), newFileName)
+          console.log(`🟡 No extractable text (possible scanned PDF): ${pageRelativeFilePath} -> ${relativeNewFilePath}`)
+          savedPagesCount++
+          continue
+        }
 
+        if (!content) {
           console.log(`🔴 No text content: ${pageRelativeFilePath}`)
           unprocessedPagesCount++
           continue
