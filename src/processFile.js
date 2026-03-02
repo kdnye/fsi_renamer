@@ -66,29 +66,31 @@ module.exports = async options => {
       for (const page of pdfPages) {
         const pageRelativeFilePath = `${relativeFilePath} (page ${page.pageNumber})`
 
-        const barcodePayload = await decodeBarcodeFromPage({ pageBuffer: page.pageBuffer })
-        const barcodeMappedName = mapBarcodeToFilename({ barcodePayload })
+        const content = await readPdfPageContent({ pageBuffer: page.pageBuffer })
 
-        let newName = barcodeMappedName
-
-        if (newName) {
-          console.log(`🟢 Barcode matched: ${pageRelativeFilePath} -> ${newName}`)
-        } else {
-          const content = await readPdfPageContent({ pageBuffer: page.pageBuffer })
-
-          if (!content) {
-            console.log(`🔴 No text content: ${pageRelativeFilePath}`)
-            continue
-          }
-
-          newName = await getNewName({ ...options, content, images: [], relativeFilePath: pageRelativeFilePath })
+        if (!content) {
+          console.log(`🔴 No text content: ${pageRelativeFilePath}`)
+          continue
         }
 
-        if (!newName) continue
+        const classificationToken = await getNewName({ ...options, content, images: [], relativeFilePath: pageRelativeFilePath })
 
-        if (isIgnoredClassification(newName)) {
+        if (!classificationToken) continue
+
+        if (isIgnoredClassification(classificationToken)) {
           console.log(`🟡 Skipped page: classified as IGNORE (${pageRelativeFilePath})`)
           continue
+        }
+
+        const decodedIdentifiers = await decodeBarcodeFromPage({ pageText: content })
+        const newName = mapBarcodeToFilename({
+          classificationToken,
+          barcodePayload: decodedIdentifiers && decodedIdentifiers.bestGuess,
+          identifiers: decodedIdentifiers || {}
+        }) || classificationToken
+
+        if (newName !== classificationToken) {
+          console.log(`🟢 Identifiers mapped: ${pageRelativeFilePath} -> ${newName}`)
         }
 
         const newFileName = await savePdfBuffer({
