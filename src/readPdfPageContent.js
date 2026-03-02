@@ -1,10 +1,21 @@
 const pdf = require('pdf-parse')
 
+const MIN_TEXT_LENGTH = 20
+
 module.exports = async ({ pageBuffer }) => {
   try {
     const pdfData = await pdf(pageBuffer)
-    return (pdfData.text || '').trim()
+    const text = (pdfData.text || '').trim()
+
+    return {
+      text,
+      hasExtractableText: text.length >= MIN_TEXT_LENGTH
+    }
   } catch (err) {
-    return ''
+    return {
+      text: '',
+      hasExtractableText: false,
+      parseError: err.message
+    }
   }
 }

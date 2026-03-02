@@ -16,7 +16,9 @@ const mapBarcodeToFilename = require('./mapBarcodeToFilename')
 const isProcessableFile = require('./isProcessableFile')
 
 const IGNORE_CLASSIFICATION = 'ignore'
+const SCANNED_REVIEW_NAME = 'SCANNED_REVIEW'
 const isIgnoredClassification = value => value && value.trim().toLowerCase() === IGNORE_CLASSIFICATION
+const isLikelyLogisticsMode = ({ logisticsMode, customPrompt }) => logisticsMode || /\blogistics\b/i.test(customPrompt || '')
 const savePdfBuffer = async ({ dir, ext, newName, pageBuffer }) => {
   let newFileName = `${newName}${ext}`
   let newPath = path.join(dir, newFileName)
@@ -63,19 +65,43 @@ module.exports = async options => {
       }
 
       let savedPagesCount = 0
+      let unprocessedPagesCount = 0
+      const logisticsModeEnabled = isLikelyLogisticsMode(options)
+
       for (const page of pdfPages) {
         const pageRelativeFilePath = `${relativeFilePath} (page ${page.pageNumber})`
 
-        const content = await readPdfPageContent({ pageBuffer: page.pageBuffer })
+        const { text: content, hasExtractableText, parseError } = await readPdfPageContent({ pageBuffer: page.pageBuffer })
+
+        if (parseError) {
+          console.log(`🟡 PDF parse warning: ${parseError} (${pageRelativeFilePath})`)
+        }
 
         if (!content) {
+          if (logisticsModeEnabled && !hasExtractableText) {
+            const newFileName = await savePdfBuffer({
+              dir: path.dirname(filePath),
+              ext,
+              newName: SCANNED_REVIEW_NAME,
+              pageBuffer: page.pageBuffer
+            })
+            const relativeNewFilePath = path.join(path.dirname(relativeFilePath), newFileName)
+            console.log(`🟡 No extractable text (possible scanned PDF): ${pageRelativeFilePath} -> ${relativeNewFilePath}`)
+            savedPagesCount++
+            continue
+          }
+
           console.log(`🔴 No text content: ${pageRelativeFilePath}`)
+          unprocessedPagesCount++
           continue
         }
 
         const classificationToken = await getNewName({ ...options, content, images: [], relativeFilePath: pageRelativeFilePath })
 
-        if (!classificationToken) continue
+        if (!classificationToken) {
+          unprocessedPagesCount++
+          continue
+        }
 
         if (isIgnoredClassification(classificationToken)) {
           console.log(`🟡 Skipped page: classified as IGNORE (${pageRelativeFilePath})`)
@@ -106,6 +132,11 @@ module.exports = async options => {
 
       if (!savedPagesCount) {
         console.log(`🔴 No pages were renamed: ${relativeFilePath}`)
+        return
+      }
+
+      if (unprocessedPagesCount) {
+        console.log(`🟡 Kept original PDF because ${unprocessedPagesCount} page(s) could not be confidently processed: ${relativeFilePath}`)
         return
       }
 
