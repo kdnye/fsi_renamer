@@ -16,7 +16,8 @@ For regular files, `ai-renamer` asks your selected model to generate a short fil
 ### 2) PDF logistics classification flow
 For PDFs, the current flow is specialized:
 - Splits each PDF into individual pages
-- Reads page text
+- Reads embedded page text
+- In logistics mode, pages with no extractable text are preserved as `SCANNED_REVIEW*.pdf` for manual handling instead of being dropped
 - Classifies each page into one token:
   - `[HWB]PU`
   - `[HWB]MultiModal`
@@ -27,7 +28,7 @@ For PDFs, the current flow is specialized:
   - `IGNORE`
 - Extracts barcode/identifier-like values (HWB/MAWB heuristics)
 - Builds final filenames from the classification + identifiers when possible
-- Saves each page as a renamed PDF and deletes the original source PDF when at least one page is saved
+- Saves each page as a renamed PDF and deletes the original source PDF only when every page was confidently handled
 
 If a page/file is classified as `IGNORE`, it is skipped.
 
@@ -109,6 +110,8 @@ Logistics mode is enabled when:
 - Your custom prompt includes the word `logistics`
 
 In logistics mode, model output is strictly validated against allowed tokens. Invalid output is retried once, then a fallback extractor is used; if still invalid, it defaults to `IGNORE`.
+
+For scanned PDFs in logistics mode, the tool now safeguards pages without embedded text by exporting them as `SCANNED_REVIEW*.pdf` and retaining the source PDF if any pages were not confidently processed.
 
 ## Supported extensions
 
