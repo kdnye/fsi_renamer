@@ -2,9 +2,8 @@ const changeCase = require('./changeCase')
 const getModelResponse = require('./getModelResponse')
 
 const LOGISTICS_ALLOWED_PATTERNS = [
-  /^\[HWB\](PU|MultiModal|ShipperID|AlertManifest|DeliveryReceipt)$/,
-  /^\[MAWB\]MAWB$/,
-  /^IGNORE$/
+  /^(\d{6,11}(PU|MultiModal|ShipperID|AlertManifest|DeliveryReceipt|MAWB))$/,
+  /^IGNORE$/i
 ]
 
 const normalizeWhitespace = text => text.replace(/\s+/g, ' ').trim()
@@ -21,7 +20,7 @@ const extractLogisticsFallback = text => {
   const exactMatch = validateLogisticsOutput(normalized)
   if (exactMatch) return exactMatch
 
-  const inlineMatch = normalized.match(/\[HWB\](PU|MultiModal|ShipperID|AlertManifest|DeliveryReceipt)|\[MAWB\]MAWB|IGNORE/)
+  const inlineMatch = normalized.match(/\b\d{6,11}(PU|MultiModal|ShipperID|AlertManifest|DeliveryReceipt|MAWB)\b|\bIGNORE\b/i)
   return inlineMatch ? inlineMatch[0] : null
 }
 
@@ -33,23 +32,24 @@ module.exports = async options => {
 
     const promptLines = isLogisticsMode
       ? [
-          'Generate filename in logistics mode.',
+          'You are a logistics document classifier.',
+          'Analyze the text and extract the House Waybill (HWB) or Master Air Waybill (MAWB).',
           '',
-          'Allowed outputs (exact, case-sensitive):',
-          '[HWB]PU',
-          '[HWB]MultiModal',
-          '[HWB]ShipperID',
-          '[HWB]AlertManifest',
-          '[HWB]DeliveryReceipt',
-          '[MAWB]MAWB',
-          'IGNORE',
+          'Output ONLY the final filename based on these exact rules:',
+          '- If text indicates a Pickup Order, output: [Number]PU',
+          '- If text indicates a Multimodal Waybill, output: [Number]MultiModal',
+          '- If text indicates Shipper ID Verification, output: [Number]ShipperID',
+          '- If text indicates an Alert Manifest, output: [Number]AlertManifest',
+          '- If text indicates a Delivery Receipt, output: [Number]DeliveryReceipt',
+          '- If it is an airline document with a MAWB, output: [MAWB Number]MAWB',
+          '- If it is a TSA Certificate or should not be saved, output: IGNORE',
           '',
           'Rules:',
-          '- Return exactly ONE of the allowed outputs.',
-          '- Do not add punctuation, explanation, extension, or extra text.',
-          '- Preserve exact casing and characters.',
+          '- Replace [Number] with the actual 6-digit HWB or 11-digit MAWB found in the text.',
+          '- Strip dashes or spaces from the numbers.',
+          '- Do not add file extensions or any other words.',
           '',
-          'Respond ONLY with the output token.'
+          'Respond ONLY with the final filename.'
         ]
       : [
           'Generate filename:',
