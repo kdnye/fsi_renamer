@@ -149,7 +149,7 @@ module.exports = async options => {
     console.log(err.message)
   } finally {
     if (framesOutputDir) {
-      await deleteDirectory({ folderPath: framesOutputDir })
+      deleteDirectory({ folderPath: framesOutputDir })
     }
   }
 }
