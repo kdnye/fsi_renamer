@@ -2,6 +2,7 @@ const Tesseract = require('tesseract.js')
 const path = require('path')
 const { v4: uuidv4 } = require('uuid')
 const fs = require('fs').promises
+const readImageContent = require('./readImageContent')
 
 const isImage = require('./isImage')
 const isVideo = require('./isVideo')
@@ -138,25 +139,27 @@ module.exports = async options => {
       return
     }
 
-   let content
+    let content
     let videoPrompt
     let images = []
-    
+
     if (isImage({ ext })) {
       console.log(`🟡 Extracting text from image via OCR: ${relativeFilePath}`)
-      try {
-        const { data } = await Tesseract.recognize(filePath, 'eng')
-        content = data.text.trim()
-        
-        // Discard images that are just photos (no document text)
-        if (content.length < 20) {
-           console.log(`🟡 Ignored: Image lacks sufficient text to be a document (${relativeFilePath})`)
-           return 
-        }
-      } catch (err) {
-        console.log(`🔴 Image OCR Failure: ${err.message}`)
+      const fileBuffer = await fs.readFile(filePath)
+      const ocrResult = await readImageContent({ buffer: fileBuffer })
+
+      if (ocrResult.ocrError) {
+        console.log(`🔴 Image OCR Failure: ${ocrResult.ocrError} (${relativeFilePath})`)
         return
       }
+      if (!ocrResult.hasExtractableText) {
+        console.log(`🟡 Ignored: Image lacks sufficient text to be a logistics document (${relativeFilePath})`)
+        return
+      }
+      
+      // Map the extracted OCR text to the payload expected by LLaMA 3
+      content = ocrResult.text
+    } else if (isVideo({ ext })) {
     } else if (isVideo({ ext })) {
       framesOutputDir = `/tmp/ai-renamer/${uuidv4()}`
       const _extractedFrames = await extractFrames({
