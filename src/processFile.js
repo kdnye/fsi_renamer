@@ -15,8 +15,8 @@ const decodeBarcodeFromPage = require('./decodeBarcodeFromPage')
 const mapBarcodeToFilename = require('./mapBarcodeToFilename')
 const isProcessableFile = require('./isProcessableFile')
 
-const isIgnoredClassification = value => value && value.trim().toLowerCase() === 'ignore'
-
+const IGNORE_CLASSIFICATION = 'ignore'
+const isIgnoredClassification = value => value && value.trim().toLowerCase() === IGNORE_CLASSIFICATION
 const savePdfBuffer = async ({ dir, ext, newName, pageBuffer }) => {
   let newFileName = `${newName}${ext}`
   let newPath = path.join(dir, newFileName)
