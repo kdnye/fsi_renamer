@@ -24,17 +24,16 @@ const savePdfBuffer = async ({ dir, ext, newName, pageBuffer }) => {
 
   while (true) {
     try {
-      await fs.access(newPath)
+      await fs.writeFile(newPath, pageBuffer, { flag: 'wx' })
+      return newFileName
+    } catch (err) {
+      if (err.code !== 'EEXIST') throw err
+
       newFileName = `${newName}${counter}${ext}`
       newPath = path.join(dir, newFileName)
       counter++
-    } catch (err) {
-      break
     }
   }
-
-  await fs.writeFile(newPath, pageBuffer)
-  return newFileName
 }
 
 module.exports = async options => {
