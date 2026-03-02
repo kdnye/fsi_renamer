@@ -138,11 +138,25 @@ module.exports = async options => {
       return
     }
 
-    let content
+   let content
     let videoPrompt
     let images = []
+    
     if (isImage({ ext })) {
-      images.push(filePath)
+      console.log(`🟡 Extracting text from image via OCR: ${relativeFilePath}`)
+      try {
+        const { data } = await Tesseract.recognize(filePath, 'eng')
+        content = data.text.trim()
+        
+        // Discard images that are just photos (no document text)
+        if (content.length < 20) {
+           console.log(`🟡 Ignored: Image lacks sufficient text to be a document (${relativeFilePath})`)
+           return 
+        }
+      } catch (err) {
+        console.log(`🔴 Image OCR Failure: ${err.message}`)
+        return
+      }
     } else if (isVideo({ ext })) {
       framesOutputDir = `/tmp/ai-renamer/${uuidv4()}`
       const _extractedFrames = await extractFrames({
