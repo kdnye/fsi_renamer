@@ -11,6 +11,8 @@ const readFileContent = require('./readFileContent')
 const deleteDirectory = require('./deleteDirectory')
 const splitPdfPages = require('./splitPdfPages')
 const readPdfPageContent = require('./readPdfPageContent')
+const decodeBarcodeFromPage = require('./decodeBarcodeFromPage')
+const mapBarcodeToFilename = require('./mapBarcodeToFilename')
 const isProcessableFile = require('./isProcessableFile')
 
 const savePdfBuffer = async ({ dir, ext, newName, pageBuffer }) => {
@@ -59,15 +61,26 @@ module.exports = async options => {
 
       let savedPagesCount = 0
       for (const page of pdfPages) {
-        const content = await readPdfPageContent({ pageBuffer: page.pageBuffer })
+        const pageRelativeFilePath = `${relativeFilePath} (page ${page.pageNumber})`
 
-        if (!content) {
-          console.log(`🔴 No text content: ${relativeFilePath} (page ${page.pageNumber})`)
-          continue
+        const barcodePayload = await decodeBarcodeFromPage({ pageBuffer: page.pageBuffer })
+        const barcodeMappedName = mapBarcodeToFilename({ barcodePayload })
+
+        let newName = barcodeMappedName
+
+        if (newName) {
+          console.log(`🟢 Barcode matched: ${pageRelativeFilePath} -> ${newName}`)
+        } else {
+          const content = await readPdfPageContent({ pageBuffer: page.pageBuffer })
+
+          if (!content) {
+            console.log(`🔴 No text content: ${pageRelativeFilePath}`)
+            continue
+          }
+
+          newName = await getNewName({ ...options, content, images: [], relativeFilePath: pageRelativeFilePath })
         }
 
-        const pageRelativeFilePath = `${relativeFilePath} (page ${page.pageNumber})`
-        const newName = await getNewName({ ...options, content, images: [], relativeFilePath: pageRelativeFilePath })
         if (!newName) continue
 
         const newFileName = await savePdfBuffer({
