@@ -19,6 +19,7 @@ const IGNORE_CLASSIFICATION = 'ignore'
 const SCANNED_REVIEW_NAME = 'SCANNED_REVIEW'
 const isIgnoredClassification = value => value && value.trim().toLowerCase() === IGNORE_CLASSIFICATION
 const isLikelyLogisticsMode = ({ logisticsMode, customPrompt }) => logisticsMode || /\blogistics\b/i.test(customPrompt || '')
+
 const savePdfBuffer = async ({ dir, ext, newName, pageBuffer }) => {
   let newFileName = `${newName}${ext}`
   let newPath = path.join(dir, newFileName)
@@ -159,7 +160,6 @@ module.exports = async options => {
       
       // Map the extracted OCR text to the payload expected by LLaMA 3
       content = ocrResult.text
-    } else if (isVideo({ ext })) {
     } else if (isVideo({ ext })) {
       framesOutputDir = `/tmp/ai-renamer/${uuidv4()}`
       const _extractedFrames = await extractFrames({
