@@ -1,134 +1,123 @@
 # ai-renamer
 
-A Node.js CLI that uses Ollama and LM Studio models (Llava, Gemma, Llama etc.) to intelligently rename files by their contents
+`ai-renamer` is a Node.js CLI for renaming files using multimodal LLMs.
 
-[![npm](https://img.shields.io/npm/v/ai-renamer.svg?style=flat-square)](https://www.npmjs.com/package/ai-renamer)
-[![license](https://img.shields.io/npm/l/ai-renamer?style=flat-square)](https://github.com/ozgrozer/ai-renamer/blob/main/license)
+It can process:
+- Images (`.jpg`, `.jpeg`, `.png`, `.bmp`, `.tif`, `.tiff`)
+- Videos (`.mp4`, `.avi`, `.mov`, `.wmv`, `.flv`, `.mkv`, `.webm`)
+- Text/code/markup files (many common extensions)
+- PDFs (including page-by-page split + rename flow)
 
-## Desktop
+## What the app does today
 
-For the desktop app, visit [airenamer.app](https://airenamer.app)
+### 1) General AI renaming
+For regular files, `ai-renamer` asks your selected model to generate a short filename based on file contents (and extracted video frames for video files).
 
-## Preview
+### 2) PDF logistics classification flow
+For PDFs, the current flow is specialized:
+- Splits each PDF into individual pages
+- Reads page text
+- Classifies each page into one token:
+  - `[HWB]PU`
+  - `[HWB]MultiModal`
+  - `[HWB]ShipperID`
+  - `[HWB]AlertManifest`
+  - `[HWB]DeliveryReceipt`
+  - `[MAWB]MAWB`
+  - `IGNORE`
+- Extracts barcode/identifier-like values (HWB/MAWB heuristics)
+- Builds final filenames from the classification + identifiers when possible
+- Saves each page as a renamed PDF and deletes the original source PDF when at least one page is saved
 
-Rename videos
+If a page/file is classified as `IGNORE`, it is skipped.
 
-https://github.com/user-attachments/assets/502aedba-044e-4ed5-a1c7-bca84af2f3ce
+## Requirements
 
-Rename images
+- Node.js 18+
+- One provider endpoint:
+  - [Ollama](https://ollama.com/download) (default)
+  - LM Studio (OpenAI-compatible local endpoint)
+  - OpenAI-compatible API
+- `ffmpeg` for video frame extraction
 
-https://github.com/ozgrozer/ai-renamer/assets/651938/0d229179-8385-4f17-a9fb-44d40c79d1e9
+## Install & run
 
-Rename files
-
-https://github.com/user-attachments/assets/f8b37c3a-9cc0-48fc-aaea-f25f7b6ee4cc
-
-## Usage
-
-You need to have [Ollama](https://ollama.com/download) or [LM Studio](https://lmstudio.ai/) and at least one LLM (Llava, Gemma, Llama etc.) installed on your system. You need to have [ffmpeg](https://www.ffmpeg.org/download.html) to rename videos.
-
-Run with NPX
+### Run without installing globally
 
 ```bash
-npx ai-renamer /path
+npx ai-renamer /path/to/file-or-folder
 ```
 
-Run with NPM
+### Or install globally
 
 ```bash
-# Install it globally
 npm install -g ai-renamer
-
-# Run it
-ai-renamer /path
+ai-renamer /path/to/file-or-folder
 ```
 
-## Ollama Usage
+## Providers
 
-Ollama is the default provider so you don't have to do anything. You can just run `npx ai-renamer /images`. At the first launch it will try to auto-select the Llava model but if it couldn't do that you can specify the model.
+### Ollama (default)
 
 ```bash
 npx ai-renamer /path --provider=ollama --model=llava:13b
 ```
 
-## LM Studio Usage
+Default base URL: `http://127.0.0.1:11434`
 
-You need to set the provider as `lm-studio` and it will auto-select the loaded model in LM Studio.
+### LM Studio
 
 ```bash
 npx ai-renamer /path --provider=lm-studio
 ```
 
-## OpenAI Usage
+Default base URL: `http://127.0.0.1:1234`
 
-You need to set the provider as `openai` and the api-key with your API key and it will auto-select the gpt-4o model. But you can assign any model with `--model` flag.
+### OpenAI-compatible
 
 ```bash
 npx ai-renamer /path --provider=openai --api-key=OPENAI_API_KEY
 ```
 
-## Custom Ports
+Default base URL: `https://api.openai.com`
 
-If you're using a different port in Ollama or LM Studio you could simply specify the base URLs.
-
-```bash
-npx ai-renamer /path --provider=ollama --base-url=http://127.0.0.1:11434
-npx ai-renamer /path --provider=lm-studio --base-url=http://127.0.0.1:1234
-```
-
-## Params
-
-The values of the flags will be saved to your disk when you use them. You can find the config file at `~/ai-renamer.json`. If you're using a Mac it's `/Users/your-user-name/ai-renamer.json`. Also when you set a flag you don't have to use them again. The script gets the values from this config file.
+## Important flags
 
 ```bash
 npx ai-renamer --help
-Options:
-  -h, --help                    Show help                              [boolean]
-      --version                 Show version number                    [boolean]
-  -p, --provider                Set the provider (e.g. ollama, openai,
-                                lm-studio)                              [string]
-  -a, --api-key                 Set the API key if you're using openai as
-                                provider                                [string]
-  -u, --base-url                Set the API base URL (e.g.
-                                http://127.0.0.1:11434 for ollama)      [string]
-  -m, --model                   Set the model to use (e.g. gemma2, llama3,
-                                gpt-4o)                                 [string]
-  -f, --frames                  Set the maximum number of frames to extract from
-                                videos (e.g. 3, 5, 10)                  [number]
-  -c, --case                    Set the case style (e.g. camelCase, pascalCase,
-                                snakeCase, kebabCase)                   [string]
-  -x, --chars                   Set the maximum number of characters in the new
-                                filename (e.g. 25)                      [number]
-  -l, --language                Set the output language (e.g. English, Turkish)
-                                                                        [string]
-  -s, --include-subdirectories  Include files in subdirectories when processing
-                                (e.g: true, false)                      [string]
-  -r, --custom-prompt           Add a custom prompt to the LLM (e.g. "Only
-                                describe the background")               [string]
 ```
 
-`ai-renamer` uses `change-case` library for case styling
+Main options:
+- `--provider, -p`
+- `--api-key, -a`
+- `--base-url, -u`
+- `--model, -m`
+- `--frames, -f` (video frame count)
+- `--case, -c` (output filename casing)
+- `--chars, -x` (max filename length)
+- `--language, -l`
+- `--include-subdirectories, -s`
+- `--custom-prompt, -r`
 
-```bash
-# value: result
-camelCase: twoWords
-capitalCase: Two Words
-constantCase: TWO_WORDS
-dotCase: two.words
-kebabCase: two-words
-noCase: two words
-pascalCase: TwoWords
-pascalSnakeCase: Two_Words
-pathCase: two/words
-sentenceCase: Two words
-snakeCase: two_words
-trainCase: Two-Words
-```
+Config is persisted in:
+- `~/ai-renamer.json`
 
-## Contribution
+## Logistics mode notes
 
-Feel free to contribute. Open a new [issue](https://github.com/ozgrozer/ai-renamer/issues), or make a [pull request](https://github.com/ozgrozer/ai-renamer/pulls).
+Logistics mode is enabled when:
+- You set internal `logisticsMode`, or
+- Your custom prompt includes the word `logistics`
+
+In logistics mode, model output is strictly validated against allowed tokens. Invalid output is retried once, then a fallback extractor is used; if still invalid, it defaults to `IGNORE`.
+
+## Supported extensions
+
+The app supports a broad set of text/code/web/data/script formats plus images, videos, and PDFs. See `src/supportedExtensions.js` for the canonical list.
+
+## Case styles
+
+Case conversion uses [`change-case`](https://www.npmjs.com/package/change-case).
 
 ## License
 
-[GPL-3.0](https://github.com/ozgrozer/ai-renamer/blob/main/license)
+GPL-3.0
