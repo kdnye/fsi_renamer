@@ -1,12 +1,35 @@
-module.exports = ({ barcodePayload }) => {
-  if (!barcodePayload) return null
+const sanitize = value => (value || '')
+  .trim()
+  .replace(/\s+/g, '')
+  .replace(/[^a-zA-Z0-9]/g, '')
+  .toUpperCase()
 
-  const sanitized = barcodePayload
-    .trim()
-    .replace(/\s+/g, '')
-    .replace(/[^a-zA-Z0-9]/g, '')
+const mapTokenToFilename = ({ classificationToken, identifiers }) => {
+  if (!classificationToken) return null
 
-  if (!sanitized) return null
+  if (classificationToken === '[MAWB]MAWB') {
+    return identifiers.mawb ? `${identifiers.mawb}MAWB` : null
+  }
 
-  return sanitized.toUpperCase()
+  const hwbMatch = classificationToken.match(/^\[HWB\](.+)$/)
+  if (hwbMatch) {
+    return identifiers.hwb ? `${identifiers.hwb}${hwbMatch[1]}` : null
+  }
+
+  return null
+}
+
+module.exports = ({ classificationToken, barcodePayload, identifiers = {} }) => {
+  const resolvedIdentifiers = {
+    hwb: sanitize(identifiers.hwb || barcodePayload),
+    mawb: sanitize(identifiers.mawb)
+  }
+
+  if (classificationToken) {
+    const mapped = mapTokenToFilename({ classificationToken, identifiers: resolvedIdentifiers })
+    if (mapped) return mapped
+  }
+
+  const fallbackPayload = sanitize(barcodePayload)
+  return fallbackPayload || null
 }
