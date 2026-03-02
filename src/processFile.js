@@ -71,10 +71,14 @@ module.exports = async options => {
       for (const page of pdfPages) {
         const pageRelativeFilePath = `${relativeFilePath} (page ${page.pageNumber})`
 
-        const { text: content, hasExtractableText, parseError } = await readPdfPageContent({ pageBuffer: page.pageBuffer })
+        const { text: content, hasExtractableText, parseError, ocrError } = await readPdfPageContent({ pageBuffer: page.pageBuffer })
 
         if (parseError) {
           console.log(`🟡 PDF parse warning: ${parseError} (${pageRelativeFilePath})`)
+        }
+
+        if (ocrError) {
+          console.log(`🟡 OCR warning: ${ocrError} (${pageRelativeFilePath})`)
         }
 
         if (logisticsModeEnabled && !hasExtractableText) {
