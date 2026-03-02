@@ -15,6 +15,8 @@ const decodeBarcodeFromPage = require('./decodeBarcodeFromPage')
 const mapBarcodeToFilename = require('./mapBarcodeToFilename')
 const isProcessableFile = require('./isProcessableFile')
 
+const isIgnoredClassification = value => value && value.trim().toLowerCase() === 'ignore'
+
 const savePdfBuffer = async ({ dir, ext, newName, pageBuffer }) => {
   let newFileName = `${newName}${ext}`
   let newPath = path.join(dir, newFileName)
@@ -36,6 +38,8 @@ const savePdfBuffer = async ({ dir, ext, newName, pageBuffer }) => {
 }
 
 module.exports = async options => {
+  let framesOutputDir
+
   try {
     const { frames, filePath, inputPath } = options
 
@@ -83,6 +87,11 @@ module.exports = async options => {
 
         if (!newName) continue
 
+        if (isIgnoredClassification(newName)) {
+          console.log(`🟡 Skipped page: classified as IGNORE (${pageRelativeFilePath})`)
+          continue
+        }
+
         const newFileName = await savePdfBuffer({
           dir: path.dirname(filePath),
           ext,
@@ -106,7 +115,6 @@ module.exports = async options => {
     let content
     let videoPrompt
     let images = []
-    let framesOutputDir
     if (isImage({ ext })) {
       images.push(filePath)
     } else if (isVideo({ ext })) {
@@ -129,14 +137,19 @@ module.exports = async options => {
     const newName = await getNewName({ ...options, images, content, videoPrompt, relativeFilePath })
     if (!newName) return
 
+    if (isIgnoredClassification(newName)) {
+      console.log(`🟡 Skipped file: classified as IGNORE (${relativeFilePath})`)
+      return
+    }
+
     const newFileName = await saveFile({ ext, newName, filePath })
     const relativeNewFilePath = path.join(path.dirname(relativeFilePath), newFileName)
     console.log(`🟢 Renamed: ${relativeFilePath} to ${relativeNewFilePath}`)
-
-    if (isVideo({ ext }) && framesOutputDir) {
-      await deleteDirectory({ folderPath: framesOutputDir })
-    }
   } catch (err) {
     console.log(err.message)
+  } finally {
+    if (framesOutputDir) {
+      await deleteDirectory({ folderPath: framesOutputDir })
+    }
   }
 }
