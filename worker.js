@@ -11,7 +11,7 @@ const processFile = require('./src/processFile')
 const PROJECT_ID = process.env.GCP_PROJECT_ID || 'quote-tool-483716'
 const SUBSCRIPTION_NAME = process.env.PUBSUB_SUBSCRIPTION || 'local-renamer-sub'
 const BUCKET_NAME = process.env.GCS_BUCKET_NAME
-const LOCAL_OLLAMA_URL = process.env.OLLAMA_BASE_URL || 'http://127.0.0.1:11434'
+const LOCAL_OLLAMA_URL = 'http://127.0.0.1:11434'
 
 if (!BUCKET_NAME) {
   throw new Error('🔴 Missing GCS_BUCKET_NAME. Set the bucket name before starting worker.js')
@@ -32,6 +32,10 @@ const isAlreadyProcessed = fileName => {
 }
 
 const uploadProcessedFiles = async ({ tempDir, originalBlobName, originalFileName }) => {
+  if (!BUCKET_NAME) {
+    throw new Error('🔴 Missing GCS_BUCKET_NAME. Cannot upload processed files to Cloud Storage.')
+  }
+
   const tempEntries = await fs.readdir(tempDir, { withFileTypes: true })
   const producedFiles = tempEntries
     .filter(entry => entry.isFile())
@@ -68,6 +72,10 @@ async function handleMessage (message) {
   await fs.mkdir(tempDir, { recursive: true })
 
   try {
+    if (!BUCKET_NAME) {
+      throw new Error('🔴 Missing GCS_BUCKET_NAME. Cannot process Cloud Storage events.')
+    }
+
     const eventData = JSON.parse(message.data.toString())
     const blobName = eventData.name
 
@@ -90,6 +98,7 @@ async function handleMessage (message) {
 
     await processFile({
       ...renamerOptions,
+      blobName,
       inputPath: tempDir,
       filePath: tempLocalPath
     })
