@@ -22,7 +22,11 @@
     "pdf-parse": "^1.1.1",
     "uuid": "^10.0.0",
     "yargs": "^17.7.2",
-    "pdf-lib": "^1.17.1"
+    "pdf-lib": "^1.17.1",
+    "@google-cloud/pubsub": "^4.4.0",
+    "@google-cloud/storage": "^7.14.0",
+    "pdf2pic": "^3.1.4",
+    "tesseract.js": "^5.1.1"
   },
   "devDependencies": {
     "standard": "^17.1.0"
