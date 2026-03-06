@@ -41,9 +41,10 @@ module.exports = async options => {
   let framesOutputDir
 
   try {
-    const { frames, filePath, inputPath } = options
+    const { frames, filePath, inputPath, blobName } = options
 
     const fileName = path.basename(filePath)
+    const sourceBlobName = blobName || fileName
     const ext = path.extname(filePath).toLowerCase()
     const relativeFilePath = path.relative(inputPath, filePath)
 
@@ -81,7 +82,7 @@ module.exports = async options => {
         }
 
         if (logisticsModeEnabled && !hasExtractableText) {
-          const reviewName = `SCANNED_REVIEW_${path.parse(fileName).name}`
+          const reviewName = `SCANNED_REVIEW_${path.basename(sourceBlobName)}`
           const newFileName = await savePdfBuffer({
             dir: path.dirname(filePath),
             ext,
