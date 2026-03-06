@@ -123,7 +123,11 @@ async function handleMessage (message) {
 }
 
 async function listenForUploads () {
-  const subscription = pubSubClient.subscription(SUBSCRIPTION_NAME)
+  const subscription = pubSubClient.subscription(SUBSCRIPTION_NAME, {
+    flowControl: {
+      maxMessages: 1
+    }
+  })
 
   console.log(`🎧 Listening for uploads on ${SUBSCRIPTION_NAME}...`)
 
