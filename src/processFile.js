@@ -1,4 +1,3 @@
-const Tesseract = require('tesseract.js')
 const path = require('path')
 const { v4: uuidv4 } = require('uuid')
 const fs = require('fs').promises
