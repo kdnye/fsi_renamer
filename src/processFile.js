@@ -17,6 +17,7 @@ const isProcessableFile = require('./isProcessableFile')
 const IGNORE_CLASSIFICATION = 'ignore'
 const isIgnoredClassification = value => value && value.trim().toLowerCase() === IGNORE_CLASSIFICATION
 const isLikelyLogisticsMode = ({ logisticsMode, customPrompt }) => logisticsMode || /\blogistics\b/i.test(customPrompt || '')
+const getReviewName = sourceName => `SCANNED_REVIEW_${path.parse(sourceName).name}`
 
 const savePdfBuffer = async ({ dir, ext, newName, pageBuffer }) => {
   let newFileName = `${newName}${ext}`
@@ -82,8 +83,7 @@ module.exports = async options => {
         }
 
         if (logisticsModeEnabled && !hasExtractableText) {
-          const sourceBaseName = path.parse(sourceBlobName).name
-          const reviewName = `SCANNED_REVIEW_${sourceBaseName}`
+          const reviewName = getReviewName(sourceBlobName)
           const newFileName = await savePdfBuffer({
             dir: path.dirname(filePath),
             ext,
@@ -110,7 +110,16 @@ module.exports = async options => {
         }
 
         if (isIgnoredClassification(classificationToken)) {
-          console.log(`🟡 Skipped page: classified as IGNORE (${pageRelativeFilePath})`)
+          const reviewName = getReviewName(sourceBlobName)
+          const newFileName = await savePdfBuffer({
+            dir: path.dirname(filePath),
+            ext,
+            newName: reviewName,
+            pageBuffer: page.pageBuffer
+          })
+          const relativeNewFilePath = path.join(path.dirname(relativeFilePath), newFileName)
+          console.log(`🟡 Classified as non-logistics (IGNORE): ${pageRelativeFilePath} -> ${relativeNewFilePath}`)
+          savedPagesCount++
           continue
         }
 
@@ -155,7 +164,10 @@ module.exports = async options => {
         return
       }
       if (!ocrResult.hasExtractableText) {
-        console.log(`🟡 Ignored: Image lacks sufficient text to be a logistics document (${relativeFilePath})`)
+        const reviewName = getReviewName(sourceBlobName)
+        const newFileName = await saveFile({ ext, newName: reviewName, filePath })
+        const relativeNewFilePath = path.join(path.dirname(relativeFilePath), newFileName)
+        console.log(`🟡 No extractable image text; marked for review: ${relativeFilePath} -> ${relativeNewFilePath}`)
         return
       }
       
@@ -182,7 +194,10 @@ module.exports = async options => {
     if (!newName) return
 
     if (isIgnoredClassification(newName)) {
-      console.log(`🟡 Skipped file: classified as IGNORE (${relativeFilePath})`)
+      const reviewName = getReviewName(sourceBlobName)
+      const newFileName = await saveFile({ ext, newName: reviewName, filePath })
+      const relativeNewFilePath = path.join(path.dirname(relativeFilePath), newFileName)
+      console.log(`🟡 Classified as non-logistics (IGNORE): ${relativeFilePath} -> ${relativeNewFilePath}`)
       return
     }
 
