@@ -3,7 +3,7 @@ const path = require('path');
 const processFile = require('./src/processFile');
 
 // Configuration
-const PROJECT_ID = 'your-gcp-project-id'; // Replace with your GCP project ID
+const PROJECT_ID = 'quote-tool-483716'; // Replace with your GCP project ID
 const SUBSCRIPTION_NAME = 'local-renamer-sub';
 const MOUNT_PATH = '/driver_paperwork';
 
