@@ -33,7 +33,7 @@ module.exports = async options => {
     const promptLines = isLogisticsMode
       ? [
           'You are a logistics document classifier.',
-          'Analyze the text and extract the House Waybill (HWB) or Master Air Waybill (MAWB).',
+          'Analyze noisy OCR text and aggressively recover the most likely House Waybill (HWB) or Master Air Waybill (MAWB) number.',
           '',
           'Output ONLY the final filename based on these exact rules:',
           '- If text indicates a Pickup Order, output: [Number]PU',
@@ -45,8 +45,12 @@ module.exports = async options => {
           '- If it is a TSA Certificate or should not be saved, output: IGNORE',
           '',
           'Rules:',
-          '- Replace [Number] with the actual 6-digit HWB or 11-digit MAWB found in the text.',
-          '- Strip dashes or spaces from the numbers.',
+          '- Prioritize finding any valid 6-digit HWB or 11-digit MAWB even if OCR quality is poor, fragmented, or contains noise.',
+          '- Reconstruct likely identifiers when digits are split by spaces, dashes, punctuation, or line breaks.',
+          '- Treat confusing OCR characters as likely digit substitutions when reasonable (e.g., O->0, I/l->1, S->5, B->8).',
+          '- Replace [Number] with the recovered 6-digit HWB or 11-digit MAWB.',
+          '- Strip spaces, dashes, and separators from the recovered number.',
+          '- If multiple candidates exist, choose the most plausible by context labels like HWB, HAWB, MAWB, AWB, air waybill, waybill, or shipment number.',
           '- Do not add file extensions or any other words.',
           '',
           'Respond ONLY with the final filename.'
