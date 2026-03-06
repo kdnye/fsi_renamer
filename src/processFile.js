@@ -82,7 +82,8 @@ module.exports = async options => {
         }
 
         if (logisticsModeEnabled && !hasExtractableText) {
-          const reviewName = `SCANNED_REVIEW_${path.basename(sourceBlobName)}`
+          const sourceBaseName = path.parse(sourceBlobName).name
+          const reviewName = `${sourceBaseName}_SCANNED_REVIEW`
           const newFileName = await savePdfBuffer({
             dir: path.dirname(filePath),
             ext,
