@@ -15,7 +15,6 @@ const readPdfPageContent = require('./readPdfPageContent')
 const isProcessableFile = require('./isProcessableFile')
 
 const IGNORE_CLASSIFICATION = 'ignore'
-const SCANNED_REVIEW_NAME = 'SCANNED_REVIEW'
 const isIgnoredClassification = value => value && value.trim().toLowerCase() === IGNORE_CLASSIFICATION
 const isLikelyLogisticsMode = ({ logisticsMode, customPrompt }) => logisticsMode || /\blogistics\b/i.test(customPrompt || '')
 
@@ -82,10 +81,11 @@ module.exports = async options => {
         }
 
         if (logisticsModeEnabled && !hasExtractableText) {
+          const reviewName = `SCANNED_REVIEW_${path.parse(fileName).name}`
           const newFileName = await savePdfBuffer({
             dir: path.dirname(filePath),
             ext,
-            newName: SCANNED_REVIEW_NAME,
+            newName: reviewName,
             pageBuffer: page.pageBuffer
           })
           const relativeNewFilePath = path.join(path.dirname(relativeFilePath), newFileName)
